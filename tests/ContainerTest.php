@@ -1,10 +1,14 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: Andrzej
- * Date: 2016-11-12
- * Time: 20:44
+ * This file is part of the Stack package.
+ *
+ * (c) Andrzej Kostrzewa <andkos11@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+declare(strict_types=1);
 
 namespace Stack\DependencyInjection;
 
@@ -54,8 +58,8 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
     
     public function testGetServiceInsideClosure()
     {
-        $di = $this->container;
-        $di->set('foo', function () use ($di) {
+        $container = $this->container;
+        $container->set('foo', function () use ($container) {
             return new ParentClassFixture();
         });
 
@@ -115,7 +119,7 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
     
     public function testMakeWithLazySetter()
     {
-        $di     = $this->container;
+        $container     = $this->container;
         $actual = $this->container->make(
             'Stack\DependencyInjection\Fixtures\ChildClassFixture',
             [
@@ -123,7 +127,7 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
                 new OtherClassFixture(),
             ],
             [
-                'setFake' => $di->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture'),
+                'setFake' => $container->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture'),
             ]
         );
         $this->assertInstanceOf('Stack\DependencyInjection\Fixtures\OtherClassFixture', $actual->getFake());
@@ -172,11 +176,11 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
         $expect = 'foo';
         $this->assertSame($expect, $actual);
 
-        $di   = $this->container;
+        $container   = $this->container;
         $lazy = $this->container->call(
             'Stack\DependencyInjection\Fixtures\ParentClassFixture',
             'mirror',
-            $di->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture')
+            $container->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture')
         );
 
         $this->assertInstanceOf('Stack\DependencyInjection\Injection\LazyObject', $lazy);
@@ -205,25 +209,25 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
             'Stack\DependencyInjection\Fixtures\ResolveClassFixture1::$foo'
         );
 
-        $di      = $this->container;
+        $container      = $this->container;
         $builder = new ContainerBuilder();
         $builder->definition([
-            'Stack\DependencyInjection\Fixtures\OtherClassFixture' => $di->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture'),
+            'Stack\DependencyInjection\Fixtures\OtherClassFixture' => $container->getLazy('Stack\DependencyInjection\Fixtures\OtherClassFixture'),
         ]);
 
         $container = $builder->build();
         $container->make(
             'Stack\DependencyInjection\Fixtures\ResolveClassFixture1',
-            ['fake' => $di->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture')]
+            ['fake' => $container->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture')]
         );
     }
     
     public function testResolveWithoutMissingParam()
     {
-        $di      = $this->container;
+        $container      = $this->container;
         $builder = new ContainerBuilder();
         $builder->definition([
-            'fake' => $di->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture'),
+            'fake' => $container->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture'),
         ]);
 
         $builder->useAutowiring(false);
@@ -235,10 +239,10 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
     
     public function testUseAnnotation()
     {
-        $di      = $this->container;
+        $container      = $this->container;
         $builder = new ContainerBuilder();
         $builder->definition([
-            'fake' => $di->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture'),
+            'fake' => $container->getLazy('Stack\DependencyInjection\Fixtures\ParentClassFixture'),
         ]);
 
         $builder->useAnnotation(true);
@@ -278,7 +282,9 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = new Resolver(new Reflector());
         $resolver->addSetters(['Stack\DependencyInjection\Fixtures\InterfaceFixture' => ['setFoo' => 'initial']]);
-        $resolver->addSetters(['Stack\DependencyInjection\Fixtures\InterfaceClass2Fixture' => ['setFoo' => 'override']]);
+        $resolver->addSetters([
+            'Stack\DependencyInjection\Fixtures\InterfaceClass2Fixture' => ['setFoo' => 'override']
+        ]);
         $container = new Container(new InjectionFactory($resolver));
 
         $actual    = $container->get('Stack\DependencyInjection\Fixtures\InterfaceClassFixture');
